@@ -1,0 +1,151 @@
+{
+  "name": "sync-writer",
+  "displayName": "sync writer",
+  "publisher": "observerw",
+  "repository": {
+    "url": "https://github.com/observerw/sync-writer"
+  },
+  "description": "A LaTeX writing tool designed specifically for non-native English speakers",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:latex"
+  ],
+  "main": "./dist/extension.js",
+  "capabilities": {
+    "codeLensProvider": {
+      "resolveProvider": "false"
+    }
+  },
+  "contributes": {
+    "keybindings": [
+      {
+        "command": "sync-writer.sync",
+        "key": "Ctrl+Shift+S"
+      }
+    ],
+    "configuration": {
+      "title": "Sync Writer",
+      "properties": {
+        "sync-writer.source-language": {
+          "type": "string",
+          "default": "zh",
+          "title": "Source Language",
+          "description": "The language of the source file"
+        },
+        "sync-writer.target-language": {
+          "type": "string",
+          "default": "en",
+          "title": "Target Language",
+          "description": "The language of the target file"
+        },
+        "sync-writer.base-url": {
+          "type": "string",
+          "default": "https://api.openai.com/v1",
+          "title": "Base URL",
+          "description": "The base URL of the OpenAI API"
+        },
+        "sync-writer.base-model": {
+          "type": "string",
+          "default": "gpt-4o-mini",
+          "title": "Base Model",
+          "description": "The base model for the OpenAI API"
+        },
+        "sync-writer.auto-sync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync the document when contents is completed"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "sync-writer.test",
+        "title": "Sync Writer: Test"
+      },
+      {
+        "command": "sync-writer.create-config",
+        "title": "Sync Writer: Create a config file"
+      },
+      {
+        "command": "sync-writer.set-api-key",
+        "title": "Sync Writer: Set the OpenAI API key"
+      },
+      {
+        "command": "sync-writer.create-block",
+        "title": "Sync Writer: Create a sync block from current selection"
+      },
+      {
+        "command": "sync-writer.sync",
+        "title": "Sync Writer: Sync"
+      },
+      {
+        "command": "sync-writer.abort",
+        "title": "Sync Writer: Abort the current sync"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "latex",
+        "path": "./snippets.json"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "sync-writer.json",
+        "url": "./sync-writer.schema.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.7",
+    "@types/node": "~22.5.0",
+    "@types/object-hash": "^3.0.6",
+    "@types/vscode": "^1.92.0",
+    "@typescript-eslint/eslint-plugin": "^7.14.1",
+    "@typescript-eslint/parser": "^7.11.0",
+    "@vscode/test-cli": "^0.0.9",
+    "@vscode/test-electron": "^2.4.0",
+    "esbuild": "^0.21.5",
+    "eslint": "^8.57.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@type-cacheable/core": "^14.1.0",
+    "@type-cacheable/lru-cache-adapter": "^18.0.0",
+    "@vscode/prompt-tsx": "0.2.6-alpha",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "dedent": "^1.5.3",
+    "jsonc-parser": "^3.3.1",
+    "lru-cache": "^11.0.0",
+    "memoize": "^10.0.0",
+    "object-hash": "^3.0.0",
+    "okapibm25": "^1.4.0",
+    "openai": "^4.56.1",
+    "reflect-metadata": "^0.2.2",
+    "smol-toml": "^1.3.0",
+    "tiktoken": "^1.0.16",
+    "vscode-diff": "^2.1.1"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "sync block": {
+    "prefix": "sync",
+    "body": ["%sync|$RANDOM_HEX $0\n\n"],
+    "description": "Create a sync block"
+  }
+}
