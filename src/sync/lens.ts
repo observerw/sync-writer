@@ -3,11 +3,8 @@ import { SyncBlock, type SyncBlockPartType } from "./block";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
 const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
-  const status = block.status;
-  const fromPartType = block.fromPartType;
-
-  const syncLens = () =>
-    new vscode.CodeLens(block.part(fromPartType!).range, {
+  const syncLens = (partType: SyncBlockPartType) =>
+    new vscode.CodeLens(block.part(partType).range, {
       title: "$(sync) Sync",
       command: "sync-writer.sync",
       arguments: [block.uid],
@@ -21,14 +18,15 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
       arguments: [block.uid, false],
     });
 
-  const abortLens = () =>
-    new vscode.CodeLens(block.part("source").range, {
+  const abortLens = (partType: SyncBlockPartType) =>
+    new vscode.CodeLens(block.part(partType).range, {
       title: "$(sync) Abort",
       command: "sync-writer.abort",
       arguments: [block.uid],
       tooltip: "Click to abort syncing",
     });
 
+  const status = block.status;
   if (status === "synced") {
     return [
       new vscode.CodeLens(block.source.range, {
@@ -39,7 +37,7 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
       resyncLens("target"),
     ];
   } else if (status === "syncing") {
-    return [abortLens()];
+    return [abortLens("source")];
   } else if (status === "s2t" || status === "t2s") {
     return [
       new vscode.CodeLens(block.source.range, {
@@ -47,7 +45,7 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
         command: "",
         arguments: [block.uid],
       }),
-      syncLens(),
+      syncLens(block.toPartType!),
     ];
   }
 

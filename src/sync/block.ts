@@ -172,8 +172,7 @@ class SyncBlockTargetPart extends SyncBlockPart {
   }
 
   static tryFrom(textLine: vscode.TextLine): SyncBlockTargetPart | null {
-    const text = textLine.text.trim();
-    if (text.startsWith("%")) {
+    if (textLine.text.trim().startsWith("%")) {
       return null;
     }
 

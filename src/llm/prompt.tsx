@@ -1,5 +1,4 @@
 import {
-  AssistantMessage,
   BasePromptElementProps,
   PromptElement,
   PromptPiece,
@@ -94,8 +93,8 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
     const prevText = [prevTitle, ...prevContents].join("\n\n");
 
     const currContents = [
-      `Current source text (in ${sourceLang}): `,
-      `Current translated text (in ${targetLang}): `,
+      `Current source text (in ${sourceLang})`,
+      `Current translated text (in ${targetLang})`,
     ];
     if (partType === "target") {
       currContents.reverse();
@@ -106,7 +105,7 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
     const currText = dedent`
     # Current translation
 
-    ${userText}${content}
+    ${userText}: ${content}
     `;
 
     return (
@@ -115,8 +114,9 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
           <TextChunk>{`${prevText}\n\n`}</TextChunk>
           {instruction && `User instruction: ${instruction}\n\n`}
           <TextChunk> {`${currText}\n`}</TextChunk>
+          <TextChunk>{`Please response with ${aiText}, with no other extra content: `}</TextChunk>
         </UserMessage>
-        <AssistantMessage>{aiText}</AssistantMessage>
+        {/* <AssistantMessage>{aiText}</AssistantMessage> */}
       </>
     );
   }

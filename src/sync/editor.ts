@@ -167,7 +167,7 @@ export class SyncEditor {
     }
 
     const uid = utils.randomHex(6);
-    const prefix = SyncStatusPrefix("synced", uid);
+    const prefix = SyncStatusPrefix("t2s", uid);
     await this._edit((builder) => {
       builder.insert(new vscode.Position(anyLine, 0), `${prefix} \n\n`);
     });
@@ -175,11 +175,12 @@ export class SyncEditor {
 
   async sync(
     uid: string,
-    toPartType: SyncBlockPartType,
+    fromPartType: SyncBlockPartType,
     text: AsyncIterable<string>,
     token?: AbortToken
   ) {
     const block = await this._find(uid, token);
+    const toPartType = fromPartType === "source" ? "target" : "source";
 
     try {
       let firstChunk = true;

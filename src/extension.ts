@@ -47,8 +47,9 @@ export async function activate(context: vscode.ExtensionContext) {
   ) => {
     const editor = new SyncEditor(textEditor, symbolProvider);
     const block = await symbolProvider.find(textEditor.document, uid);
-    const toPartType = block?.toPartType;
-    if (!block || !toPartType) {
+    const fromPartType = block?.fromPartType;
+
+    if (!block || !fromPartType) {
       throw new Error(`invalid uid`);
     }
 
@@ -56,13 +57,13 @@ export async function activate(context: vscode.ExtensionContext) {
     return await scheduler.schedule(
       uid,
       async (token) => {
-        const text = client.translate(block, {
+        const text = client.translate(block, fromPartType, {
           token,
           instruction,
         });
         // const text = randomTextGenerator(10, 30);
         try {
-          await editor.sync(uid, toPartType, text, token);
+          await editor.sync(uid, fromPartType, text, token);
         } catch (e) {
           const errMsg = (e as Error).message;
           await vscode.window.showWarningMessage(

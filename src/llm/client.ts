@@ -5,7 +5,7 @@ import * as vscode from "vscode";
 import { Config } from "../config";
 import { GlobalConfig } from "../config/global";
 import type { ReferenceItem } from "../references";
-import type { SyncBlock } from "../sync/block";
+import type { SyncBlock, SyncBlockPartType } from "../sync/block";
 import { SyncBlockCache } from "../sync/cache";
 import type { AbortToken } from "../utils/abort";
 import { LLMCache } from "./cache";
@@ -45,13 +45,9 @@ export abstract class LLMClient {
 
   async *translate(
     block: SyncBlock,
+    fromPartType: SyncBlockPartType,
     options?: TranslateOptions
   ): AsyncIterable<string> {
-    const fromPartType = block.fromPartType;
-    if (!fromPartType) {
-      return;
-    }
-
     const configData = await this._config.load(block.document);
     const references = configData.references;
     const props: TranslatePromptProps = {
@@ -85,7 +81,6 @@ export abstract class LLMClient {
       {
         modelMaxPromptTokens: 4096,
       },
-      // new TiktokenTokenzier()
       model
     );
 
@@ -164,9 +159,10 @@ export class OpenAIClient extends LLMClient {
 
   translate(
     block: SyncBlock,
+    fromPartType: SyncBlockPartType,
     options?: Omit<TranslateOptions, "modelOptions">
   ): AsyncIterable<string> {
-    return super.translate(block, {
+    return super.translate(block, fromPartType, {
       ...options,
       modelOptions: {
         temperature: 0,
