@@ -22,5 +22,9 @@ export const ensureApiKey = async (
     return true;
   }
 
+  vscode.window.showInformationMessage(
+    `OpenAI API key is not set properly, please set a valid API key`
+  );
+
   return await setApiKey(context);
 };

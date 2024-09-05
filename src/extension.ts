@@ -182,6 +182,10 @@ export async function activate(context: vscode.ExtensionContext) {
           `OpenAI API key validation failed: ${errMsg}, please set a valid API key`
         );
       }
+
+      vscode.window.showInformationMessage(
+        `OpenAI API key is set successfully!`
+      );
     })
   );
   // create a new sync block from the current line
