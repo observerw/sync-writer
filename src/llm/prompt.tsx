@@ -101,20 +101,23 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
     }
 
     const [sourceText, targetText] = currContents;
-    const currText = dedent`
-    # Current translation
-
-    ${sourceText}: ${content}
-
-    Please response with ${targetText}, with no other extra content: 
-    `;
 
     return (
       <>
         <UserMessage>
           <TextChunk>{`${prevText}\n\n`}</TextChunk>
           {instruction && `User instruction: ${instruction}\n\n`}
-          <TextChunk> {`${currText}\n`}</TextChunk>
+          <TextChunk>
+            {dedent`
+            # Current translation
+
+            ${sourceText}: ${content}
+
+            Please response with ${targetText}, without any additional format (like starting with 'Current translated text') or content.
+
+            Response:
+            `}
+          </TextChunk>
         </UserMessage>
       </>
     );

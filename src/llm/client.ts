@@ -152,7 +152,7 @@ export class OpenAIClient extends LLMClient {
 
       const content = chunk.choices[0].delta.content;
       if (typeof content !== "string") {
-        throw new Error("invalid response");
+        continue;
       }
 
       yield content;
