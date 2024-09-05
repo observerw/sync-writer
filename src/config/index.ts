@@ -32,6 +32,11 @@ export class Config {
   }
 
   async load(doc: vscode.TextDocument): Promise<ConfigData> {
+    const exist = await this.exists(doc);
+    if (!exist) {
+      return defaultConfigData;
+    }
+
     const configDoc = await vscode.workspace.openTextDocument(
       this._configUri(doc)
     );

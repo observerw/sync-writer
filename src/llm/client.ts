@@ -143,8 +143,7 @@ export class OpenAIClient extends LLMClient {
     const transformedMessages = messages.map((m) => transformMessage(m));
     const resp = await client.chat.completions.create({
       ...(options?.modelOptions as OpenAI.Chat.ChatCompletionCreateParamsStreaming),
-      // model: this.model,
-      model: "deepseek-chat",
+      model: this.model,
       messages: transformedMessages,
       stream: true,
     });
