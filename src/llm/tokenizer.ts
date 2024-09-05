@@ -1,9 +1,9 @@
 import { AnyTokenizer } from "@vscode/prompt-tsx/dist/base/tokenizer/tokenizer";
-import { get_encoding } from "tiktoken";
+import { getEncoding } from "js-tiktoken";
 
 export class TiktokenTokenzier extends AnyTokenizer {
   constructor() {
-    const enc = get_encoding("cl100k_base");
+    const enc = getEncoding("cl100k_base");
 
     super(async (text, token) => {
       if (token?.isCancellationRequested) {

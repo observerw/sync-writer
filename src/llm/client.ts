@@ -12,6 +12,7 @@ import { LLMCache } from "./cache";
 import { API_KEY } from "./const";
 import { TranslatePrompt, TranslatePromptProps } from "./prompt";
 // import { TiktokenTokenzier } from "./tokenizer";
+import { TiktokenTokenzier } from "./tokenizer";
 import { transformMessage } from "./utils";
 
 export type RequestOptions = {
@@ -74,14 +75,15 @@ export abstract class LLMClient {
       return;
     }
 
-    const [model] = await vscode.lm.selectChatModels({ family: "gpt-4o" }); // use as the tokenizer
+    // const [model] = await vscode.lm.selectChatModels({ family: "gpt-4o" }); // use as the tokenizer
     const { messages } = await renderPrompt(
       TranslatePrompt,
       props,
       {
         modelMaxPromptTokens: 4096,
       },
-      model
+      // model
+      new TiktokenTokenzier()
     );
 
     for await (const chunk of this._request(messages, options)) {

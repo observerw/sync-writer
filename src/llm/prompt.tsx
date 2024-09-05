@@ -100,12 +100,13 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
       currContents.reverse();
     }
 
-    const [userText, aiText] = currContents;
-
+    const [sourceText, targetText] = currContents;
     const currText = dedent`
     # Current translation
 
-    ${userText}: ${content}
+    ${sourceText}: ${content}
+
+    Please response with ${targetText}, with no other extra content: 
     `;
 
     return (
@@ -114,9 +115,7 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
           <TextChunk>{`${prevText}\n\n`}</TextChunk>
           {instruction && `User instruction: ${instruction}\n\n`}
           <TextChunk> {`${currText}\n`}</TextChunk>
-          <TextChunk>{`Please response with ${aiText}, with no other extra content: `}</TextChunk>
         </UserMessage>
-        {/* <AssistantMessage>{aiText}</AssistantMessage> */}
       </>
     );
   }
