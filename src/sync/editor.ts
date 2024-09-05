@@ -173,28 +173,35 @@ export class SyncEditor {
     });
   }
 
-  async sync(uid: string, text: AsyncIterable<string>, token?: AbortToken) {
+  async sync(
+    uid: string,
+    toPartType: SyncBlockPartType,
+    text: AsyncIterable<string>,
+    token?: AbortToken
+  ) {
     const block = await this._find(uid, token);
-    if (!block.toPartType) {
-      return;
-    }
 
     try {
-      let content = "";
-      await this.changeContent(uid, block.toPartType, "");
+      let firstChunk = true;
       for await (const chunk of text) {
         if (token?.aborted) {
           throw new Error("cancelled");
         }
 
-        content += chunk;
+        // clear previous content before first chunk
+        if (firstChunk) {
+          await this.changeContent(uid, toPartType, "");
+          firstChunk = false;
+        }
+
         // await this.changeContent(uid, toPartType, content);
-        await this.concatContent(uid, block.toPartType, chunk);
+        await this.concatContent(uid, toPartType, chunk);
       }
 
       await this.changeStatus(uid, "synced");
     } catch (e) {
       await this.rollback(block);
+      throw e;
     }
   }
 }

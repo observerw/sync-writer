@@ -41,6 +41,8 @@ export abstract class LLMClient {
     options?: RequestOptions
   ): AsyncIterable<string>;
 
+  abstract validate(): Promise<void> | void;
+
   async *translate(
     block: SyncBlock,
     options?: TranslateOptions
@@ -122,8 +124,15 @@ export class OpenAIClient extends LLMClient {
   async validate() {
     const client = await this._client();
     const models = await client.models.list();
-    const modelSet = new Set(models.data);
-    return modelSet.has(this.model as any);
+
+    const found = models.data.some((m) => m.id === this.model);
+    if (!found) {
+      throw new Error(
+        `Model ${this.model} not found, available models: ${models.data
+          .map((m) => m.id)
+          .join(", ")}`
+      );
+    }
   }
 
   protected async *_request(
@@ -174,6 +183,10 @@ export class CopilotClient extends LLMClient {
     readonly family: "gpt-3.5-turbo" = "gpt-3.5-turbo"
   ) {
     super(_context);
+  }
+
+  async validate() {
+    await this._model();
   }
 
   private async _model() {

@@ -28,7 +28,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const apiKeyAvailable = await ensureApiKey(context);
   if (!apiKeyAvailable) {
-    vscode.window.showErrorMessage("OpenAI API key is required");
+    vscode.window.showErrorMessage(
+      "OpenAI API key is not set, please set a valid API key for full functionality"
+    );
+  } else {
+    try {
+      await client.validate();
+    } catch (e: unknown) {
+      const errMsg = (e as Error).message;
+      vscode.window.showErrorMessage(`OpenAI API validation failed: ${errMsg}`);
+    }
   }
 
   const sync = async (
@@ -38,7 +47,8 @@ export async function activate(context: vscode.ExtensionContext) {
   ) => {
     const editor = new SyncEditor(textEditor, symbolProvider);
     const block = await symbolProvider.find(textEditor.document, uid);
-    if (!block) {
+    const toPartType = block?.toPartType;
+    if (!block || !toPartType) {
       throw new Error(`invalid uid`);
     }
 
@@ -50,14 +60,17 @@ export async function activate(context: vscode.ExtensionContext) {
           token,
           instruction,
         });
+        // const text = randomTextGenerator(10, 30);
         try {
-          editor.sync(uid, text, token);
+          await editor.sync(uid, toPartType, text, token);
         } catch (e) {
+          const errMsg = (e as Error).message;
           await vscode.window.showWarningMessage(
-            "Sync failed, rollback to previous state"
+            `Sync failed: ${errMsg}, rollback to previous state`
           );
         }
       },
+      // delay 1.2s to wait code lens update
       1200
     );
   };
@@ -79,18 +92,18 @@ export async function activate(context: vscode.ExtensionContext) {
       const fromPartType = block.linePartType(line)!;
       const part = block.part(fromPartType);
 
+      // if the part is incomplete, change to corresponding status
+      const newStatus = (
+        {
+          source: "s2t",
+          target: "t2s",
+        } satisfies Record<SyncBlockPartType, SyncStatus>
+      )[fromPartType];
+      await editor.changeStatus(block.uid, newStatus);
+
       // if the part is complete, sync content to the other part
       if (part.complete && GlobalConfig.autoSync) {
         await sync(e.textEditor, uid);
-      } else {
-        // if the part is incomplete, change to corresponding status
-        const newStatus = (
-          {
-            source: "s2t",
-            target: "t2s",
-          } satisfies Record<SyncBlockPartType, SyncStatus>
-        )[fromPartType];
-        await editor.changeStatus(block.uid, newStatus);
       }
     }
   });
@@ -152,8 +165,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // set OpenAI API key
   context.subscriptions.push(
     vscode.commands.registerCommand("sync-writer.set-api-key", async () => {
-      await setApiKey(context);
-      // TODO add api key validation
+      try {
+        await setApiKey(context);
+        await client.validate();
+      } catch (e: unknown) {
+        const errMsg = (e as Error).message;
+        vscode.window.showErrorMessage(
+          `OpenAI API key validation failed: ${errMsg}, please set a valid API key`
+        );
+      }
     })
   );
   // create a new sync block from the current line

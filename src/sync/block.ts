@@ -262,7 +262,11 @@ export class SyncBlock {
   }
 
   get toPartType(): SyncBlockPartType | null {
-    return this.fromPartType === "source" ? "target" : "source";
+    return this.fromPartType === "source"
+      ? "target"
+      : this.fromPartType === "target"
+      ? "source"
+      : null;
   }
 
   get status(): SyncStatus {
