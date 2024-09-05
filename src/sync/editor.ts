@@ -146,8 +146,18 @@ export class SyncEditor {
   async concatContent(uid: string, partType: SyncBlockPartType, text: string) {
     const block = await this._find(uid);
     const part = block.part(partType);
+
+    // HACK: insert will fail if active line is same as the line to be inserted
+    // setTimeout(async () => {
+    //   await this._edit((builder) => {
+    //     builder.insert(part.range.end, text);
+    //   });
+    // }, 0);
+
+    // FIXME: insert will fail if active line is same as the line to be inserted, but setTimeout will cause disorder
+
     await this._edit((builder) => {
-      builder.insert(part.textRange.end, text);
+      builder.insert(part.range.end, text);
     });
   }
 

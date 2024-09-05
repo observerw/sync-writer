@@ -38,6 +38,14 @@ export class SyncEditScheduler implements vscode.Disposable {
   cancel(uid: string) {
     const source = this.sources.get(uid);
     source?.cancel();
+    this.sources.delete(uid);
+  }
+
+  cancelAll() {
+    for (const source of this.sources.values()) {
+      source.cancel();
+    }
+    this.sources.clear();
   }
 
   dispose() {

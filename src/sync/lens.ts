@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import type { SyncCommandArgs } from "../commands";
 import { SyncBlock, type SyncBlockPartType } from "./block";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
@@ -7,7 +8,13 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
     new vscode.CodeLens(block.part(partType).range, {
       title: "$(sync) Sync",
       command: "sync-writer.sync",
-      arguments: [block.uid],
+      arguments: [
+        {
+          uid: block.uid,
+          fromPartType: partType,
+          ignoreInstruction: true,
+        } satisfies SyncCommandArgs,
+      ],
     });
 
   const resyncLens = (partType: SyncBlockPartType) =>
@@ -15,7 +22,13 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
       title: "$(sync) resync",
       command: "sync-writer.sync",
       tooltip: "Regenerate the sync text",
-      arguments: [block.uid, false],
+      arguments: [
+        {
+          uid: block.uid,
+          fromPartType: partType === "source" ? "target" : "source",
+          ignoreInstruction: false,
+        } satisfies SyncCommandArgs,
+      ],
     });
 
   const abortLens = (partType: SyncBlockPartType) =>
