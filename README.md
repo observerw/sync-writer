@@ -1,12 +1,23 @@
 # Sync-Writer
 
-专为非英语母语者设计的 $\LaTeX$ 写作工具，**只需编写非英语的文本注释，即可自动同步生成符合英语学术写作规范的 $\LaTeX$ 文本**。
+专为非英语母语者设计的 $\LaTeX$ 写作工具，**只需编写非英语的文本注释，即可同步生成符合英语学术写作规范的 $\LaTeX$ 文本**。
 
 - 自动翻译为符合英语学术写作规范的 $\LaTeX$ 文本；
 - 注释和正文之间保持同步，无论编辑哪一方，另一方都会自动更新；
 - 增量翻译，内容更新时翻译文本将参考上一次的翻译结果，保证用词、风格的一致性；
 - 支持术语定义，确保同一篇文档中术语的一致性；
-- 支持自动记录写作偏好，确保同一篇文档中的风格的一致性。
+- 支持自动记录写作偏好，确保同一篇文档中的写作风格的一致性。
+
+# ⚠️ 注意
+
+本插件使用**符合 OpenAI API 接口形式的 LLM API 进行翻译**，因此需要你自行准备 API 密钥并配置相对应的 base URL。当没有正确设置 API 密钥时，插件将无法正常工作。
+
+你可以在 VSCode 设置中搜索 `Sync-writer: Base-url`来设置 base URL。出于安全原因，你无法在设置页面设置 API key，但你可以随时在命令面板中使用 `Sync Writer: Set OpenAI API Key` 命令来设置 API 密钥。
+
+除了使用 OpenAI API 外，你也可以在如下平台上申请 API 密钥并设置相应的 base URL：
+
+- Deepseek：https://platform.deepseek.com/ ，base URL 为 `https://api.deepseek.com/`
+- GLM：https://open.bigmodel.cn/ ，base URL 为 `https://open.bigmodel.cn/api/paas/v4`
 
 # 添加同步块
 
@@ -37,7 +48,7 @@ Bowl chicken is a special delicacy in Meishan, Sichuan, known for its spicy and 
 + Bowl chicken is a special delicacy in Meishan, Sichuan, which has been popular in and out of Sichuan Province since the 1990s.
 ```
 
-当你觉得翻译结果有需要改进的地方时，可直接对正文进行编辑：
+当你觉得翻译结果有需要改进的地方时，可**直接对正文进行编辑**：
 
 ```diff
 %sync<1a2b3c 钵钵鸡是一种四川眉山一带的特色美食，1990年代起在四川省内外广受欢迎。
@@ -55,18 +66,35 @@ Bowl chicken is a special delicacy in Meishan, Sichuan, known for its spicy and 
 Bowl chicken is a special delicacy in Meishan, Sichuan. It has been popular in and out of Sichuan Province since the 1990s.
 ```
 
-**⚠️ 注意**：请不要修改同步块的前缀（如上例中的 `%sync|1a2b3c `），否则同步将会失效。
+**⚠️ 注意**：**请不要修改同步块的前缀**（如上例中的 `%sync|1a2b3c `），否则同步将会失效。
 
 # 逐句翻译
 
-为了避免过于频繁的触发同步，默认在每次输入完整的句子后（以句号、问号或分号作为结尾）才会触发同步。
+为了避免过于频繁的触发同步，默认在**每次输入完整的句子后（以句号、问号或分号作为结尾）才会触发同步**。
+
+比如，当你输入了：
+
+```diff
+%sync>1a2b3c 钵钵鸡是一种四川眉山一带的特色美食，1990年代起在四川省内外广受欢
+```
+
+正文不会自动更新，只有当你输入了完整的句子后：
+
+```diff
+- %sync>1a2b3c 钵钵鸡是一种四川眉山一带的特色美食，1990年代起在四川省内外广受欢
++ %sync>1a2b3c 钵钵鸡是一种四川眉山一带的特色美食，1990年代起在四川省内外广受欢迎。
+
++ Bowl chicken is a special delicacy in Meishan, Sichuan, known for its spicy and fragrant taste.
+```
+
+正文才会自动更新。
 
 - 如果你想要手动触发同步，可以使用 `Ctrl+Shift+S` 快捷键。
-- 如果你不喜欢自动触发同步，可以在配置文件中关闭这个功能。
+- 如果你不喜欢自动触发同步，可以在配置文件中关闭这个功能，此时你只能通过手动触发同步来更新正文。
 
 # 增量同步
 
-当对同步块中的内容进行编辑后，下一次同步将参考上一次的翻译结果，保证用词、风格的一致性。
+当对同步块中的内容进行编辑后，**下一次同步将参考上一次的翻译结果**，保证用词、风格的一致性。
 
 比如，当你编辑了同步块中的源语言部分：
 
@@ -93,7 +121,7 @@ Source: 钵钵鸡是一种四川眉山一带的特色美食。自 1990 年代以
 Translation:
 ```
 
-因此，大部分没有改变的内容都会保持与上一次同步时的翻译结果完全一致，只会重新翻译新增/修改的部分。
+因此，**大部分没有改变的内容都会保持与上一次同步时的翻译结果完全一致**，只会重新翻译新增/修改的部分。
 
 # 同步块操作
 
@@ -104,6 +132,8 @@ Translation:
 - 已同步（`Synced`）：
   - 源语言部分的 `resync`：重新翻译源语言部分；
   - 目标语言部分的 `resync`：重新翻译源语言部分；
+
+在重新进行翻译时，可以输入一些**指令**，比如修改翻译的风格、调整翻译的准确性等；LLM 将会遵照给定的指令将内容重新进行翻译。
 
 ![alt text](assets/editing.png)
 
@@ -117,7 +147,7 @@ Translation:
 
 # 配置文件
 
-配置文件默认放在当前打开工作区根目录下的 `sync-writer.json` 文件中。
+配置文件默认放在当前打开工作区根目录下的 `sync-writer.json` 文件中。一个典型的配置文件如下：
 
 ```json
 {
@@ -136,13 +166,42 @@ Translation:
 
 ## 术语定义
 
-你可以预先定义一些术语，确保同一篇文档中术语的一致性。在翻译过程中，如果遇到了已经定义的术语，LLM 将会尽量采用你所规定的翻译。
+术语定义对应配置文件中的 `references > glossary`，你可以预先定义一些术语，确保同一篇文档中术语的一致性，如：
+
+```json
+{
+  "references": {
+    "glossary": [
+      { "source": "钵钵鸡", "target": "Bowl chicken" },
+      { "source": "麻辣鲜香", "target": "spicy and fragrant" }
+    ]
+  }
+}
+```
+
+进行如上配置后，当你输入了 `钵钵鸡` 时，将总会翻译为 `Bowl chicken` 而非其他同义说法。
+
+在翻译过程中，如果遇到了已经定义的术语，LLM 将会尽量采用你所规定的翻译。
 
 ## 写作偏好记录 （TODO）
 
-与 ChatGPT 网页版的 Memory 功能类似，Sync-Writer 会自动记录你的写作偏好，确保同一篇文档中的风格的一致性。
+写作偏好记录对应配置文件中的 `references > preferences`，与 ChatGPT 网页版的 Memory 功能类似，**Sync-Writer 会自动记录你的写作偏好**，确保同一篇文档中的风格的一致性。
 
 比如，当你多次使用 `Bobo-Chicken`，而不是 `Bowl chicken` 时，Sync-Writer 会自动记录你的偏好：
+
+```diff
+{
+  "references": {
+    "preferences": [
+      { "source": "我们强调了", "target": "we emphasized" },
+      { "source": "我们提出了", "target": "we proposed" },
++     { "source": "钵钵鸡", "target": "Bobo-Chicken" }
+    ]
+  }
+}
+```
+
+随后，当你再次输入钵钵鸡时，将会自动翻译为 Bobo-Chicken 而不是 Bowl chicken：
 
 ```diff
 %sync|1a2b3c 钵钵鸡是一种四川眉山一带的特色美食，1990年代起在四川省内外广受欢迎。

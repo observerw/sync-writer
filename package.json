@@ -74,7 +74,7 @@
       },
       {
         "command": "sync-writer.set-api-key",
-        "title": "Sync Writer: Set the OpenAI API key"
+        "title": "Sync Writer: Set OpenAI API key"
       },
       {
         "command": "sync-writer.create-block",
