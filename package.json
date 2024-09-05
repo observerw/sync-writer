@@ -58,7 +58,7 @@
         },
         "sync-writer.auto-sync": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Automatically sync the document when contents is completed"
         }
       }

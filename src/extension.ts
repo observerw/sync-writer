@@ -124,6 +124,23 @@ export async function activate(context: vscode.ExtensionContext) {
     const cache = new SyncBlockCache(context, uri);
     cache.reserve([]);
   });
+  // sync block when tex file saved
+  texWatcher.onDidChange(async (uri) => {
+    const textEditor = vscode.window.activeTextEditor;
+    const document = textEditor?.document;
+    if (!document || document.uri.path !== uri.path) {
+      return;
+    }
+
+    const line = textEditor.selection.active.line;
+    const block = await SyncBlock.tryFromAnyLine(document, line);
+    const fromPartType = block?.fromPartType;
+    if (!block || !fromPartType) {
+      return;
+    }
+
+    await sync(textEditor, block.uid, fromPartType);
+  });
   context.subscriptions.push(texWatcher);
 
   // cancel all tasks when the active text editor is changed
