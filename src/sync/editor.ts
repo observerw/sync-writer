@@ -7,6 +7,7 @@ import {
   SyncStatus,
   SyncStatusPrefix,
 } from "./block";
+import { SyncBlockCacheData } from "./cache";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
 const DirtyDecorationType = vscode.window.createTextEditorDecorationType({
@@ -151,13 +152,13 @@ export class SyncEditor {
     });
   }
 
-  /**
-   * Rollback a part to previous synced content
-   */
-  async rollback(block: SyncBlock) {
-    await this.changeStatus(block.uid, block.status);
-    await this.changeContent(block.uid, "source", block.source.text);
-    await this.changeContent(block.uid, "target", block.target.text);
+  async rollback(
+    { uid, source, target }: SyncBlockCacheData,
+    status?: SyncStatus
+  ) {
+    await this.changeStatus(uid, status ?? "synced");
+    await this.changeContent(uid, "source", source);
+    await this.changeContent(uid, "target", target);
   }
 
   async create(anyLine: number) {
@@ -194,7 +195,7 @@ export class SyncEditor {
         await this.concatContent(uid, toPartType, chunk);
       }
     } catch (e) {
-      await this.rollback(block);
+      await this.rollback(SyncBlockCacheData.from(block), block.status);
       throw e;
     }
   }

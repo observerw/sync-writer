@@ -4,10 +4,20 @@ import { SyncBlock } from "./block";
 /**
  * Simplified data structure for SyncBlock cache, since additional data may be invalid after document change.
  */
-export interface SyncBlockCacheData {
-  uid: string;
-  source: string;
-  target: string;
+export class SyncBlockCacheData {
+  constructor(
+    readonly uid: string,
+    readonly source: string,
+    readonly target: string
+  ) {}
+
+  static from(block: SyncBlock) {
+    return new SyncBlockCacheData(
+      block.uid,
+      block.source.text,
+      block.target.text
+    );
+  }
 }
 
 /**

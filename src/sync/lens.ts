@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import type { SyncCommandArgs } from "../commands";
 import { SyncBlock, type SyncBlockPartType } from "./block";
 import type { SyncBlockSymbolProvider } from "./symbol";
+import type { SyncOptions } from "./sync";
 
 const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
   const syncLens = (partType: SyncBlockPartType) =>
@@ -12,8 +12,8 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
         {
           uid: block.uid,
           fromPartType: partType,
-          ignoreInstruction: true,
-        } satisfies SyncCommandArgs,
+        } satisfies SyncOptions,
+        true,
       ],
     });
 
@@ -26,8 +26,8 @@ const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
         {
           uid: block.uid,
           fromPartType: partType === "source" ? "target" : "source",
-          ignoreInstruction: false,
-        } satisfies SyncCommandArgs,
+        } satisfies SyncOptions,
+        false,
       ],
     });
 

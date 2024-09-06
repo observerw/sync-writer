@@ -2,7 +2,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import "reflect-metadata";
 import * as vscode from "vscode";
-import { type SyncCommandArgs } from "./commands";
 import { Config, defaultConfigData } from "./config";
 import { GlobalConfig } from "./config/global";
 import { OpenAIClient } from "./llm/client";
@@ -12,19 +11,18 @@ import { SyncBlockCache } from "./sync/cache";
 import { SyncEditor } from "./sync/editor";
 import { SyncBlockFoldProvider } from "./sync/fold";
 import { SyncBlockCodeLensProvider } from "./sync/lens";
-import { SyncEditScheduler } from "./sync/schedule";
 import { SyncBlockSymbolProvider } from "./sync/symbol";
+import { Syncer, type SyncOptions } from "./sync/sync";
 
 export async function activate(context: vscode.ExtensionContext) {
   const config = new Config(context);
   const client = new OpenAIClient(context);
 
-  const scheduler = new SyncEditScheduler();
-  context.subscriptions.push(scheduler);
-
   const symbolProvider = new SyncBlockSymbolProvider();
   const codeLensProvider = new SyncBlockCodeLensProvider(symbolProvider);
   const foldProvider = new SyncBlockFoldProvider(symbolProvider);
+
+  const syncer = new Syncer(context, symbolProvider, client);
 
   const apiKeyAvailable = await ensureApiKey(context);
   if (!apiKeyAvailable) {
@@ -39,49 +37,6 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.window.showErrorMessage(`OpenAI API validation failed: ${errMsg}`);
     }
   }
-
-  const sync = async (
-    textEditor: vscode.TextEditor,
-    uid: string,
-    fromPartType: SyncBlockPartType,
-    instruction?: string
-  ) => {
-    const document = textEditor.document;
-    const editor = new SyncEditor(textEditor, symbolProvider);
-    const block = await symbolProvider.find(document, uid);
-
-    if (!block) {
-      throw new Error(`invalid uid`);
-    }
-
-    await editor.changeStatus(uid, "syncing");
-    return await scheduler.schedule(
-      uid,
-      async (token) => {
-        const text = client.translate(block, fromPartType, {
-          token,
-          instruction,
-        });
-        // const text = randomTextGenerator(10, 30);
-        try {
-          await editor.sync(uid, fromPartType, text, token);
-          await editor.changeStatus(uid, "synced");
-
-          const syncedBlock = await symbolProvider.find(document, uid);
-          const cache = new SyncBlockCache(context, document.uri);
-          await cache.save(syncedBlock!);
-        } catch (e) {
-          const errMsg = (e as Error).message;
-          await vscode.window.showWarningMessage(
-            `Sync failed: ${errMsg}, rollback to previous state`
-          );
-          throw e;
-        }
-      },
-      // delay 1.2s to wait code lens update
-      1200
-    );
-  };
 
   vscode.window.onDidChangeTextEditorSelection(
     async ({ textEditor, kind, selections: [selection] }) => {
@@ -125,7 +80,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // if the part is complete, sync content to the other part
       if (block.part(linePartType).complete && GlobalConfig.autoSync) {
-        await sync(textEditor, uid, block.fromPartType!);
+        await syncer.sync(textEditor, {
+          uid,
+          fromPartType: block.fromPartType!,
+        });
       }
     }
   );
@@ -147,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
   texWatcher.onDidChange(async (uri) => {
     const textEditor = vscode.window.activeTextEditor;
     const document = textEditor?.document;
-    if (!document || document.uri.path !== uri.path) {
+    if (!document || document.uri.toString() !== uri.toString()) {
       return;
     }
 
@@ -158,14 +116,9 @@ export async function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    await sync(textEditor, block.uid, fromPartType);
+    await syncer.sync(textEditor, { uid: block.uid, fromPartType });
   });
   context.subscriptions.push(texWatcher);
-
-  // cancel all tasks when the active text editor is changed
-  vscode.window.onDidChangeActiveTextEditor(async () => {
-    scheduler.cancelAll();
-  });
 
   const selector: vscode.DocumentSelector = {
     language: "latex",
@@ -199,7 +152,12 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("sync-writer.create-config", async () => {
       const doc = vscode.window.activeTextEditor?.document;
-      if (!doc || (await config.exists(doc))) {
+      if (!doc) {
+        return;
+      }
+
+      const exists = await config.exists(doc);
+      if (!exists) {
         return;
       }
 
@@ -225,6 +183,7 @@ export async function activate(context: vscode.ExtensionContext) {
       );
     })
   );
+
   // create a new sync block from the current line
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
@@ -244,28 +203,10 @@ export async function activate(context: vscode.ExtensionContext) {
       async (
         textEditor,
         _edit,
-        { uid, fromPartType, ignoreInstruction }: SyncCommandArgs = {
-          ignoreInstruction: true,
-        }
+        { uid, fromPartType, instruction }: SyncOptions,
+        ignoreInstruction: boolean = false
       ) => {
-        const document = textEditor.document;
-        const line = textEditor.selection.active.line;
-        const block = uid
-          ? await symbolProvider.find(document, uid)
-          : await SyncBlock.tryFromAnyLine(document, line);
-        // explicitly set -> block status -> active line type
-        fromPartType =
-          fromPartType ||
-          block?.fromPartType ||
-          block?.linePartType(line) ||
-          undefined;
-
-        if (!block || !fromPartType) {
-          return;
-        }
-
-        let instruction: string | undefined;
-        if (!ignoreInstruction) {
+        if (!ignoreInstruction && !instruction) {
           instruction = await vscode.window.showInputBox({
             prompt: "Enter the instruction for the sync",
           });
@@ -274,17 +215,30 @@ export async function activate(context: vscode.ExtensionContext) {
           }
         }
 
-        await sync(textEditor, block.uid, fromPartType, instruction);
+        await syncer.sync(textEditor, {
+          uid,
+          fromPartType,
+          instruction,
+        });
       }
     )
   );
 
   // abort edit on the specific sync block
   context.subscriptions.push(
-    vscode.commands.registerCommand(
+    vscode.commands.registerTextEditorCommand(
       "sync-writer.abort",
-      async (uid: string) => {
-        scheduler.cancel(uid);
+      async (textEditor, _edit, uid: string) => {
+        const document = textEditor.document;
+        syncer.cancel(uid);
+
+        // rollback to the cached state
+        const cache = new SyncBlockCache(context, document.uri);
+        const editor = new SyncEditor(textEditor, symbolProvider);
+        const cached = cache.get(uid);
+        if (cached) {
+          await editor.rollback(cached);
+        }
       }
     )
   );

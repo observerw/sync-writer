@@ -98,10 +98,7 @@ export abstract class LLMClient {
 }
 
 export class OpenAIClient extends LLMClient {
-  constructor(
-    _context: vscode.ExtensionContext,
-    readonly model: string = GlobalConfig.baseModel
-  ) {
+  constructor(_context: vscode.ExtensionContext) {
     super(_context);
   }
 
@@ -118,14 +115,18 @@ export class OpenAIClient extends LLMClient {
     });
   }
 
+  private get _model() {
+    return GlobalConfig.baseModel;
+  }
+
   async validate() {
     const client = await this._client();
     const models = await client.models.list();
 
-    const found = models.data.some((m) => m.id === this.model);
+    const found = models.data.some((m) => m.id === this._model);
     if (!found) {
       throw new Error(
-        `Model ${this.model} not found, available models: ${models.data
+        `Model ${this._model} not found, available models: ${models.data
           .map((m) => m.id)
           .join(", ")}`
       );
@@ -140,7 +141,7 @@ export class OpenAIClient extends LLMClient {
     const transformedMessages = messages.map((m) => transformMessage(m));
     const resp = await client.chat.completions.create({
       ...(options?.modelOptions as OpenAI.Chat.ChatCompletionCreateParamsStreaming),
-      model: this.model,
+      model: this._model,
       messages: transformedMessages,
       stream: true,
     });
