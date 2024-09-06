@@ -11,7 +11,6 @@ import type { AbortToken } from "../utils/abort";
 import { LLMCache } from "./cache";
 import { API_KEY } from "./const";
 import { TranslatePrompt, TranslatePromptProps } from "./prompt";
-// import { TiktokenTokenzier } from "./tokenizer";
 import { TiktokenTokenzier } from "./tokenizer";
 import { transformMessage } from "./utils";
 
@@ -75,14 +74,12 @@ export abstract class LLMClient {
       return;
     }
 
-    // const [model] = await vscode.lm.selectChatModels({ family: "gpt-4o" }); // use as the tokenizer
     const { messages } = await renderPrompt(
       TranslatePrompt,
       props,
       {
         modelMaxPromptTokens: 4096,
       },
-      // model
       new TiktokenTokenzier()
     );
 
@@ -176,10 +173,7 @@ export class OpenAIClient extends LLMClient {
 }
 
 export class CopilotClient extends LLMClient {
-  constructor(
-    _context: vscode.ExtensionContext,
-    readonly family: "gpt-3.5-turbo" = "gpt-3.5-turbo"
-  ) {
+  constructor(_context: vscode.ExtensionContext) {
     super(_context);
   }
 
@@ -190,7 +184,7 @@ export class CopilotClient extends LLMClient {
   private async _model() {
     const models = await vscode.lm.selectChatModels({
       vendor: "copilot",
-      family: this.family,
+      family: GlobalConfig.baseModel,
     });
 
     if (!models) {
