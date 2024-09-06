@@ -46,8 +46,9 @@ export async function activate(context: vscode.ExtensionContext) {
     fromPartType: SyncBlockPartType,
     instruction?: string
   ) => {
+    const document = textEditor.document;
     const editor = new SyncEditor(textEditor, symbolProvider);
-    const block = await symbolProvider.find(textEditor.document, uid);
+    const block = await symbolProvider.find(document, uid);
 
     if (!block) {
       throw new Error(`invalid uid`);
@@ -64,6 +65,11 @@ export async function activate(context: vscode.ExtensionContext) {
         // const text = randomTextGenerator(10, 30);
         try {
           await editor.sync(uid, fromPartType, text, token);
+          await editor.changeStatus(uid, "synced");
+
+          const syncedBlock = await symbolProvider.find(document, uid);
+          const cache = new SyncBlockCache(context, document.uri);
+          await cache.save(syncedBlock!);
         } catch (e) {
           const errMsg = (e as Error).message;
           await vscode.window.showWarningMessage(
@@ -79,6 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   vscode.window.onDidChangeTextEditorSelection(
     async ({ textEditor, kind, selections: [selection] }) => {
+      const document = textEditor.document;
       const line = selection.active.line;
       const block = await SyncBlock.tryFromAnyLine(textEditor.document, line);
 
@@ -87,8 +94,9 @@ export async function activate(context: vscode.ExtensionContext) {
       await editor.highlight(block?.uid);
 
       if (
-        !block ||
-        (kind && kind !== vscode.TextEditorSelectionChangeKind.Keyboard)
+        !block || // edit not in a sync block
+        (kind && kind !== vscode.TextEditorSelectionChangeKind.Keyboard) || // not an edit
+        block.status === "syncing" // block is syncing
       ) {
         return;
       }
@@ -96,14 +104,24 @@ export async function activate(context: vscode.ExtensionContext) {
       const { uid } = block;
       const linePartType = block.linePartType(line)!;
 
-      // change to corresponding status
-      const newStatus = (
-        {
-          source: "s2t",
-          target: "t2s",
-        } satisfies Record<SyncBlockPartType, SyncStatus>
-      )[linePartType];
-      await editor.changeStatus(block.uid, newStatus);
+      const cache = new SyncBlockCache(context, document.uri);
+      const cachedBlock = cache.get(uid);
+
+      // if text is the same as the cached text, change status to syncing
+      const text = document.lineAt(line).text;
+      const cachedText = cachedBlock?.[linePartType];
+      if (text === cachedText) {
+        await editor.changeStatus(uid, "synced");
+      } else {
+        // change to corresponding status
+        const newStatus = (
+          {
+            source: "s2t",
+            target: "t2s",
+          } satisfies Record<SyncBlockPartType, SyncStatus>
+        )[linePartType];
+        await editor.changeStatus(uid, newStatus);
+      }
 
       // if the part is complete, sync content to the other part
       if (block.part(linePartType).complete && GlobalConfig.autoSync) {
@@ -120,11 +138,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const cache = new SyncBlockCache(context, uri);
     cache.reserve(blocks.map(({ uid }) => uid));
   });
+  // clear cache when tex file deleted
   texWatcher.onDidDelete(async (uri) => {
     const cache = new SyncBlockCache(context, uri);
     cache.reserve([]);
   });
-  // sync block when tex file saved
+  // sync active sync block when tex file saved
   texWatcher.onDidChange(async (uri) => {
     const textEditor = vscode.window.activeTextEditor;
     const document = textEditor?.document;
@@ -144,7 +163,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(texWatcher);
 
   // cancel all tasks when the active text editor is changed
-  vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+  vscode.window.onDidChangeActiveTextEditor(async () => {
     scheduler.cancelAll();
   });
 
@@ -187,6 +206,7 @@ export async function activate(context: vscode.ExtensionContext) {
       await config.save(doc, defaultConfigData);
     })
   );
+
   // set OpenAI API key
   context.subscriptions.push(
     vscode.commands.registerCommand("sync-writer.set-api-key", async () => {
@@ -211,7 +231,6 @@ export async function activate(context: vscode.ExtensionContext) {
       "sync-writer.create-block",
       async (textEditor) => {
         const editor = new SyncEditor(textEditor, symbolProvider);
-
         const line = textEditor.selection.active.line;
         await editor.create(line);
       }

@@ -146,12 +146,13 @@ export class TranslatePrompt extends PromptElement<TranslatePromptProps> {
       {dedent`
       You are a research paper reviewer who excels at writing high-quality English research papers. Please translate the given content into English and Chinese for each other. Ensuring that the translation is in line with the language style of professional academic journals. When translating, please follow these rules:
       
-      1. Ensure that the English translation is consistent with the original meaning and format, do not make up anything or any latex format.
+      1. Ensure that the English translation is consistent with the original meaning and format, do not make up anything or any LaTeX format.
       2. Ensure that your terminology and definitions are accurate, especially for domain-specific terms and concepts;
       3. Ensure that the logical relationships of the language are accurate and well-organized;
       4. Use a concise and clear expression, avoiding the use of vague or unnecessary vocabulary, terms, or sentences;
       5. Pay attention to the accuracy of English grammar expression and ensure that the sentence structure is correct;
       6. Ensure that the LaTeX format of the original text is completely preserved in the translation. 
+      7. Respect previous translations and ensure that the new translation is consistent with the previous one.
 
       Your response MUST NOT include any additional format or content. Your translation MUST be in the same line, DO NOT contain any line breaks.
       `}

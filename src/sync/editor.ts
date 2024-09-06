@@ -64,11 +64,10 @@ export class SyncEditor {
     }
   }
 
-  private _setDecorations(
-    sourceRange: vscode.Range,
-    targetRange: vscode.Range,
-    status: SyncStatus
-  ) {
+  private _setDecorations(block: SyncBlock, status: SyncStatus) {
+    const sourceRange = block.source.range;
+    const targetRange = block.target.range;
+
     const decorations = (
       {
         s2t: [
@@ -108,7 +107,7 @@ export class SyncEditor {
 
     // clear previous highlight and set new highlight
     this._clearDecorations();
-    this._setDecorations(block.source.range, block.target.range, block.status);
+    this._setDecorations(block, block.status);
     this._highlightedUid = statusUid(block);
   }
 
@@ -130,7 +129,7 @@ export class SyncEditor {
     });
 
     // set corresponding decorations
-    this._setDecorations(block.source.range, block.target.range, status);
+    this._setDecorations(block, status);
 
     return;
   }
@@ -146,15 +145,6 @@ export class SyncEditor {
   async concatContent(uid: string, partType: SyncBlockPartType, text: string) {
     const block = await this._find(uid);
     const part = block.part(partType);
-
-    // HACK: insert will fail if active line is same as the line to be inserted
-    // setTimeout(async () => {
-    //   await this._edit((builder) => {
-    //     builder.insert(part.range.end, text);
-    //   });
-    // }, 0);
-
-    // FIXME: insert will fail if active line is same as the line to be inserted, but setTimeout will cause disorder
 
     await this._edit((builder) => {
       builder.insert(part.range.end, text);
@@ -172,6 +162,7 @@ export class SyncEditor {
 
   async create(anyLine: number) {
     const document = this._textEditor.document;
+    // already in a block, do nothing
     if (await SyncBlock.tryFromAnyLine(document, anyLine)) {
       return;
     }
@@ -193,23 +184,15 @@ export class SyncEditor {
     const toPartType = fromPartType === "source" ? "target" : "source";
 
     try {
-      let firstChunk = true;
+      await this.changeContent(uid, toPartType, "");
+
       for await (const chunk of text) {
         if (token?.aborted) {
           throw new Error("cancelled");
         }
 
-        // clear previous content before first chunk
-        if (firstChunk) {
-          await this.changeContent(uid, toPartType, "");
-          firstChunk = false;
-        }
-
-        // await this.changeContent(uid, toPartType, content);
         await this.concatContent(uid, toPartType, chunk);
       }
-
-      await this.changeStatus(uid, "synced");
     } catch (e) {
       await this.rollback(block);
       throw e;
