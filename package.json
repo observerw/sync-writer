@@ -2,6 +2,7 @@
   "name": "sync-writer",
   "displayName": "sync writer",
   "publisher": "observerw",
+  "icon": "icon/main.png",
   "repository": {
     "url": "https://github.com/observerw/sync-writer"
   },
