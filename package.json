@@ -32,34 +32,34 @@
     "configuration": {
       "title": "Sync Writer",
       "properties": {
-        "sync-writer.source-language": {
+        "sync-writer.lang.source": {
           "type": "string",
           "default": "zh",
           "title": "Source Language",
           "description": "The language of the source file"
         },
-        "sync-writer.target-language": {
+        "sync-writer.lang.target": {
           "type": "string",
           "default": "en",
           "title": "Target Language",
           "description": "The language of the target file"
         },
-        "sync-writer.base-url": {
+        "sync-writer.api.baseURL": {
           "type": "string",
           "default": "https://api.openai.com/v1",
-          "title": "Base URL",
+          "title": "OpenAI API Base URL",
           "description": "The base URL of the OpenAI API"
         },
-        "sync-writer.base-model": {
+        "sync-writer.api.baseModel": {
           "type": "string",
           "default": "gpt-4o-mini",
-          "title": "Base Model",
+          "title": "openAI API Base Model",
           "description": "The base model for the OpenAI API"
         },
-        "sync-writer.auto-sync": {
+        "sync-writer.sync.autoSync": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically sync the document when contents is completed"
+          "description": "Automatically sync the document when cotent is completed"
         }
       }
     },

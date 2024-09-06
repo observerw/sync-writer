@@ -7,7 +7,7 @@ export class GlobalConfig {
   }
 
   static get sourceLang(): Lang {
-    return this._get("source-language");
+    return this._get("lang.source");
   }
 
   static get sourceLangName(): string {
@@ -15,7 +15,7 @@ export class GlobalConfig {
   }
 
   static get targetLang(): Lang {
-    return this._get("target-language");
+    return this._get("lang.target");
   }
 
   static get targetLangName(): string {
@@ -23,14 +23,14 @@ export class GlobalConfig {
   }
 
   static get baseUrl(): string {
-    return this._get("base-url");
+    return this._get("api.baseURL");
   }
 
   static get baseModel(): string {
-    return this._get("base-model");
+    return this._get("api.baseModel");
   }
 
   static get autoSync(): boolean {
-    return this._get<boolean>("auto-sync");
+    return this._get<boolean>("sync.autoSync");
   }
 }

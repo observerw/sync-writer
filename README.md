@@ -40,7 +40,7 @@
 Bowl chicken is a special delicacy in Meishan, Sichuan, known for its spicy and fragrant taste.
 ```
 
-正文会自动更新：
+正文会相应的更新：
 
 ```diff
 %sync|1a2b3c 钵钵鸡是一种四川眉山一带的特色美食，1990年代起在四川省内外广受欢迎。
@@ -68,9 +68,21 @@ Bowl chicken is a special delicacy in Meishan, Sichuan. It has been popular in a
 
 **⚠️ 注意**：**请不要修改同步块的前缀**（如上例中的 `%sync|1a2b3c `），否则同步将会失效。
 
-# 逐句翻译
+# 触发同步
 
-为了避免过于频繁的触发同步，默认在**每次输入完整的句子后（以句号、问号或分号作为结尾）才会触发同步**。
+在编辑了源语言或目标语言部分后，同步块将处于“编辑中”的状态。此时，你可以通过以下方式触发同步：
+
+## 手动同步
+
+如果你想要手动触发同步，可以使用 `Ctrl+Shift+S` 快捷键。
+
+## 保存时同步
+
+保存文件时，如果当前光标处于某一个同步块中，该同步块将会自动触发同步。
+
+## 自动同步
+
+在设置中提供了名为 `sync-writer.sync.autoSync` 的选项（默认关闭），当该选项开启时，默认在**每次输入完整的句子后（以句号、问号或分号作为结尾）会触发一次同步**。
 
 比如，当你输入了：
 
@@ -88,9 +100,6 @@ Bowl chicken is a special delicacy in Meishan, Sichuan. It has been popular in a
 ```
 
 正文才会自动更新。
-
-- 如果你想要手动触发同步，可以使用 `Ctrl+Shift+S` 快捷键。
-- 如果你不喜欢自动触发同步，可以在配置文件中关闭这个功能，此时你只能通过手动触发同步来更新正文。
 
 # 增量同步
 
