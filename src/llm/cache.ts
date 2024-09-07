@@ -11,7 +11,7 @@ export class LLMCache<T extends {}> {
    */
   private _respCache: LRUCache<string, string>;
 
-  constructor(max: number = 10) {
+  constructor(max: number = 100) {
     this._hashCache = new LRUCache({ max });
     this._respCache = new LRUCache({ max });
   }
