@@ -1,13 +1,9 @@
 import * as vscode from "vscode";
 import { utils } from "../utils";
 import type { AbortToken } from "../utils/abort";
-import {
-  SyncBlock,
-  SyncBlockPartType,
-  SyncStatus,
-  SyncStatusPrefix,
-} from "./block";
+import { SyncBlock, SyncBlockPartType } from "./block";
 import { SyncBlockCacheData } from "./cache";
+import { SyncCommentPrefix, type SyncStatus } from "./parse";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
 const DirtyDecorationType = vscode.window.createTextEditorDecorationType({
@@ -125,7 +121,7 @@ export class SyncEditor {
     await this._edit((builder) => {
       builder.replace(
         block.source.prefixRange,
-        SyncStatusPrefix(status, block.uid)
+        SyncCommentPrefix(status, block.uid)
       );
     });
 
@@ -169,7 +165,7 @@ export class SyncEditor {
     }
 
     const uid = utils.randomHex(6);
-    const prefix = SyncStatusPrefix("t2s", uid);
+    const prefix = SyncCommentPrefix("t2s", uid);
     await this._edit((builder) => {
       builder.insert(new vscode.Position(anyLine, 0), `${prefix} \n\n`);
     });

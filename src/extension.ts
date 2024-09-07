@@ -6,11 +6,12 @@ import { Config, defaultConfigData } from "./config";
 import { GlobalConfig } from "./config/global";
 import { OpenAIClient } from "./llm/client";
 import { ensureApiKey, setApiKey } from "./llm/ui";
-import { SyncBlock, SyncBlockPartType, SyncStatus } from "./sync/block";
+import { SyncBlock, SyncBlockPartType } from "./sync/block";
 import { SyncBlockCache } from "./sync/cache";
 import { SyncEditor } from "./sync/editor";
 import { SyncBlockFoldProvider } from "./sync/fold";
 import { SyncBlockCodeLensProvider } from "./sync/lens";
+import type { SyncStatus } from "./sync/parse";
 import { SyncBlockSymbolProvider } from "./sync/symbol";
 import { Syncer, type SyncOptions } from "./sync/sync";
 

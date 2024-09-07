@@ -1,6 +1,6 @@
 import { LRUCache } from "lru-cache";
 import * as vscode from "vscode";
-import { SyncBlock, tryParseSyncComment } from "./block";
+import { SyncBlock } from "./block";
 
 /**
  * Block uid to its line number cache.
@@ -23,48 +23,9 @@ export class SyncBlockSymbolProvider implements vscode.DocumentSymbolProvider {
     return this._docCache.get(document.uri)!;
   }
 
-  private _get(document: vscode.TextDocument, uid: string): number | null {
-    return this._getCache(document).get(uid) ?? null;
-  }
-
   private _set(document: vscode.TextDocument, uid: string, line: number) {
     this._getCache(document).set(uid, line);
   }
-
-  private async _validate(
-    document: vscode.TextDocument,
-    line: number,
-    uid: string
-  ): Promise<boolean> {
-    const text = document.lineAt(line).text;
-    const parsed = await tryParseSyncComment(text);
-
-    return parsed?.uid === uid;
-  }
-
-  private async _shrink(doc: vscode.TextDocument) {
-    const cache = this._getCache(doc);
-    const staled = (
-      await Promise.all(
-        Array.from(cache.keys()).map(async (uid) => {
-          const line = cache.get(uid)!;
-          const isValid = await this._validate(doc, line, uid);
-          return isValid ? [] : [uid];
-        })
-      )
-    ).flat();
-
-    for (const uid of staled) {
-      cache.delete(uid);
-    }
-
-    const sourceLines = Array.from(cache.values());
-    const targetLines = sourceLines.map((line) => line + 1);
-    const validLines = new Set([...sourceLines, ...targetLines]);
-
-    return validLines;
-  }
-
   async provideDocumentSymbols(
     doc: vscode.TextDocument,
     token: vscode.CancellationToken
