@@ -1,5 +1,7 @@
 # Sync-Writer
 
+![example](assets/example.png)
+
 专为非英语母语者设计的 $\LaTeX$ 写作工具，**只需编写非英语的文本注释，即可同步生成符合英语学术写作规范的 $\LaTeX$ 文本**。
 
 - 自动翻译为符合英语学术写作规范的 $\LaTeX$ 文本；
@@ -72,6 +74,10 @@ Bowl chicken is a special delicacy in Meishan, Sichuan. It has been popular in a
 
 - 从源语言部分创建同步块：添加 `%sync` 开头的注释（当输入 `sync` 后，将会有 snippet 提示）即创建了同步块中的源语言部分，与其相对应的目标语言部分默认为换行后的下一行文本。
 - 从目标语言部分创建同步块：将光标置于已有文本中，使用 `Ctrl+Shift+P` 打开命令面板，搜索 `Sync Writer: Create a sync block from current selection`，即可创建对应的源语言部分。
+
+## 特点
+
+- 非规范内容的翻译：源语言部分中可以包含非规范的 LaTeX 语法（比如 `a_temp`等）或 Markdown 语法（比如`**粗体**`），插件会自动将其翻译为符合规范的 LaTeX 语法（比如 `a_{\text{temp}}`和 `\textbf{粗体}`）。
 
 # 触发同步
 
