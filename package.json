@@ -66,10 +66,6 @@
     },
     "commands": [
       {
-        "command": "sync-writer.test",
-        "title": "Sync Writer: Test"
-      },
-      {
         "command": "sync-writer.create-config",
         "title": "Sync Writer: Create a config file"
       },

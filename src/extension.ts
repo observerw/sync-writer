@@ -138,17 +138,6 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerFoldingRangeProvider(selector, foldProvider)
   );
 
-  // command for test purpose
-  context.subscriptions.push(
-    vscode.commands.registerTextEditorCommand(
-      "sync-writer.test",
-      async (textEditor, builder) => {
-        const active = textEditor.selection.active;
-        builder.insert(active, "test");
-      }
-    )
-  );
-
   // create a new config file if not exists
   context.subscriptions.push(
     vscode.commands.registerCommand("sync-writer.create-config", async () => {
