@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { SyncBlock } from "./block";
+import { SyncBlock, type SyncBlockPartType } from "./block";
 
 /**
  * Simplified data structure for SyncBlock cache, since additional data may be invalid after document change.
@@ -62,6 +62,11 @@ export class SyncBlockCache {
       this._context.workspaceState.get<SyncBlockCacheData>(this._key(uid)) ||
       null
     );
+  }
+
+  getPart(uid: string, part: SyncBlockPartType): string | null {
+    const data = this.get(uid);
+    return data ? data[part] : null;
   }
 
   remove(uid: string) {

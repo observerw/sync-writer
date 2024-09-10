@@ -21,6 +21,7 @@ class SyncScheduler {
     if (prevSource) {
       // always cancel the previous edit if two edits are scheduled on the same block
       prevSource.cancel();
+      this.sources.delete(uid);
     }
 
     const source = new AbortSource();
@@ -104,11 +105,11 @@ export class Syncer {
           token,
           instruction,
         });
-        // const text = randomTextGenerator(10, 30);
+        // const text = randomTextGenerator(10, 300);
         try {
           await editor.sync(uid, fromPartType, text, token);
-          await editor.changeStatus(uid, "synced");
 
+          await editor.changeStatus(uid, "synced");
           const syncedBlock = await this.symbolProvider.find(document, uid);
           const cache = new SyncBlockCache(this._context, document.uri);
           await cache.save(syncedBlock!);

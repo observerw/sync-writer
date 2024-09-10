@@ -56,19 +56,20 @@ export abstract class LLMClient {
         partType: fromPartType,
         sourceLang: GlobalConfig.sourceLangName,
         targetLang: GlobalConfig.targetLangName,
-        content: block.part(fromPartType).text,
-        instruction: options?.instruction,
+        content: block.part(fromPartType).text.trim(),
+        instruction: options?.instruction?.trim(),
       },
     };
     const blockCache = new SyncBlockCache(this._context, block.document.uri);
     const cached = blockCache.get(block.uid);
     if (cached) {
       props.text.prev = {
-        source: cached.source,
-        target: cached.target,
+        source: cached.source.trim(),
+        target: cached.target.trim(),
       };
     }
     const cachedResp = this._translateCache.get(props);
+
     if (cachedResp) {
       yield cachedResp;
       return;
