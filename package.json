@@ -7,7 +7,7 @@
     "url": "https://github.com/observerw/sync-writer"
   },
   "description": "A LaTeX writing tool designed specifically for non-native English speakers",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.92.0"
   },
