@@ -3,7 +3,7 @@ import { utils } from "../utils";
 import type { AbortToken } from "../utils/abort";
 import { SyncBlock, SyncBlockPartType } from "./block";
 import { SyncBlockCacheData } from "./cache";
-import { SyncCommentPrefix, type SyncStatus } from "./parse";
+import { SyncComment, SyncCommentPrefix, type SyncStatus } from "./parse";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
 const DirtyDecorationType = vscode.window.createTextEditorDecorationType({
@@ -165,9 +165,9 @@ export class SyncEditor {
     }
 
     const uid = utils.randomHex(6);
-    const prefix = SyncCommentPrefix("t2s", uid);
+    const comment = SyncComment("", "t2s", uid, "latex");
     await this._edit((builder) => {
-      builder.insert(new vscode.Position(anyLine, 0), `${prefix} \n\n`);
+      builder.insert(new vscode.Position(anyLine, 0), `${comment} \n\n`);
     });
   }
 
