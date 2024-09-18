@@ -232,6 +232,15 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     )
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerTextEditorCommand(
+      "sync-writer.export",
+      async (textEditor) => {
+        throw new Error("Not implemented");
+      }
+    )
+  );
 }
 
 // This method is called when your extension is deactivated
