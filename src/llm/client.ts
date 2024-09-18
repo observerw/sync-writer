@@ -45,7 +45,7 @@ export abstract class LLMClient {
 
   async *translate(
     block: SyncBlock,
-    fromPartType: SyncBlockPartType,
+    from: SyncBlockPartType,
     options?: TranslateOptions
   ): AsyncIterable<string> {
     const configData = await this._config.load(block.document);
@@ -53,10 +53,10 @@ export abstract class LLMClient {
     const props: TranslatePromptProps = {
       references,
       text: {
-        partType: fromPartType,
+        from: from,
         sourceLang: GlobalConfig.sourceLangName,
         targetLang: GlobalConfig.targetLangName,
-        content: block.part(fromPartType).text.trim(),
+        content: block.part(from).text.trim(),
         instruction: options?.instruction?.trim(),
       },
     };
@@ -160,10 +160,10 @@ export class OpenAIClient extends LLMClient {
 
   translate(
     block: SyncBlock,
-    fromPartType: SyncBlockPartType,
+    from: SyncBlockPartType,
     options?: Omit<TranslateOptions, "modelOptions">
   ): AsyncIterable<string> {
-    return super.translate(block, fromPartType, {
+    return super.translate(block, from, {
       ...options,
       modelOptions: {
         temperature: 0,

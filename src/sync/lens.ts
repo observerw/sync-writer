@@ -4,35 +4,35 @@ import type { SyncBlockSymbolProvider } from "./symbol";
 import type { SyncOptions } from "./sync";
 
 const blockLens = (block: SyncBlock): vscode.CodeLens[] => {
-  const syncLens = (partType: SyncBlockPartType) =>
-    new vscode.CodeLens(block.part(partType).range, {
+  const syncLens = (type: SyncBlockPartType) =>
+    new vscode.CodeLens(block.part(type).range, {
       title: "$(sync) Sync",
       command: "sync-writer.sync",
       arguments: [
         {
           uid: block.uid,
-          fromPartType: partType,
+          from: type,
         } satisfies SyncOptions,
         true,
       ],
     });
 
-  const resyncLens = (partType: SyncBlockPartType) =>
-    new vscode.CodeLens(block.part(partType).range, {
+  const resyncLens = (type: SyncBlockPartType) =>
+    new vscode.CodeLens(block.part(type).range, {
       title: "$(sync) resync",
       command: "sync-writer.sync",
       tooltip: "Regenerate the sync text",
       arguments: [
         {
           uid: block.uid,
-          fromPartType: partType === "source" ? "target" : "source",
+          from: type === "source" ? "target" : "source",
         } satisfies SyncOptions,
         false,
       ],
     });
 
-  const abortLens = (partType: SyncBlockPartType) =>
-    new vscode.CodeLens(block.part(partType).range, {
+  const abortLens = (type: SyncBlockPartType) =>
+    new vscode.CodeLens(block.part(type).range, {
       title: "$(sync) Abort",
       command: "sync-writer.abort",
       arguments: [block.uid],

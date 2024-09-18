@@ -131,17 +131,17 @@ export class SyncEditor {
     return;
   }
 
-  async changeContent(uid: string, partType: SyncBlockPartType, text: string) {
+  async changeContent(uid: string, type: SyncBlockPartType, text: string) {
     const block = await this._find(uid);
-    const part = block.part(partType);
+    const part = block.part(type);
     await this._edit((builder) => {
       builder.replace(part.textRange, text);
     });
   }
 
-  async concatContent(uid: string, partType: SyncBlockPartType, text: string) {
+  async concatContent(uid: string, type: SyncBlockPartType, text: string) {
     const block = await this._find(uid);
-    const part = block.part(partType);
+    const part = block.part(type);
 
     await this._edit((builder) => {
       builder.insert(part.range.end, text);
@@ -173,12 +173,12 @@ export class SyncEditor {
 
   async sync(
     uid: string,
-    fromPartType: SyncBlockPartType,
+    from: SyncBlockPartType,
     text: AsyncIterable<string>,
     token?: AbortToken
   ) {
     const block = await this._find(uid, token);
-    const toPartType = fromPartType === "source" ? "target" : "source";
+    const toPartType = from === "source" ? "target" : "source";
 
     try {
       await this.changeContent(uid, toPartType, "");
@@ -194,5 +194,17 @@ export class SyncEditor {
       await this.rollback(SyncBlockCacheData.from(block), block.status);
       throw e;
     }
+  }
+
+  /**
+   * Reserve the content of a part only.
+   */
+  async reserve(uid: string, from: SyncBlockPartType) {
+    const block = await this._find(uid);
+    const text = block.part(from).text;
+
+    await this._edit((builder) => {
+      builder.replace(block.range, text);
+    });
   }
 }

@@ -6,22 +6,32 @@ import { SyncBlockCache } from "./cache";
 import { SyncEditor } from "./editor";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
-class SyncScheduler {
+export interface SyncTaskInfo {
+  uid: string;
+  from: SyncBlockPartType;
+}
+
+interface SyncTask {
+  info: SyncTaskInfo;
+  source: AbortSource;
+}
+
+class TaskScheduler {
   /**
    * Sync block id to its abort source
    */
-  sources: Map<string, AbortSource> = new Map();
+  sources: Map<string, SyncTask> = new Map();
 
   async schedule(
-    uid: string,
+    info: SyncTaskInfo,
     taskFunc: (token: AbortToken) => Promise<void>,
     delayMs: number = 0
   ): Promise<AbortSource> {
-    const prevSource = this.sources.get(uid);
-    if (prevSource) {
+    const prevTask = this.sources.get(info.uid);
+    if (prevTask) {
       // always cancel the previous edit if two edits are scheduled on the same block
-      prevSource.cancel();
-      this.sources.delete(uid);
+      prevTask.source.cancel();
+      this.sources.delete(info.uid);
     }
 
     const source = new AbortSource();
@@ -29,27 +39,27 @@ class SyncScheduler {
 
     const timeout = setTimeout(async () => {
       await taskFunc(source.token);
-      this.sources.delete(uid);
+      this.sources.delete(info.uid);
     }, delayMs);
     token.onAborted(() => {
       clearTimeout(timeout);
-      this.sources.delete(uid);
+      this.sources.delete(info.uid);
     });
 
-    this.sources.set(uid, source);
+    this.sources.set(info.uid, { info, source });
 
     return source;
   }
 
   cancel(uid: string): boolean {
-    const source = this.sources.get(uid);
-    source?.cancel();
+    const task = this.sources.get(uid);
+    task?.source.cancel();
     return this.sources.delete(uid);
   }
 
   cancelAll() {
-    for (const source of this.sources.values()) {
-      source.cancel();
+    for (const task of this.sources.values()) {
+      task.source.cancel();
     }
     this.sources.clear();
   }
@@ -57,12 +67,12 @@ class SyncScheduler {
 
 export interface SyncOptions {
   uid?: string;
-  fromPartType?: SyncBlockPartType;
+  from?: SyncBlockPartType;
   instruction?: string;
 }
 
 export class Syncer {
-  private _scheduler: SyncScheduler = new SyncScheduler();
+  private _scheduler: TaskScheduler = new TaskScheduler();
 
   constructor(
     private _context: vscode.ExtensionContext,
@@ -74,9 +84,13 @@ export class Syncer {
     this._scheduler.cancel(uid);
   }
 
+  query(uid: string) {
+    return this._scheduler.sources.get(uid)?.info;
+  }
+
   async sync(
     textEditor: vscode.TextEditor,
-    { uid, fromPartType, instruction }: SyncOptions
+    { uid, from, instruction }: SyncOptions
   ) {
     const document = textEditor.document;
     const line = textEditor.selection.active.line;
@@ -84,13 +98,10 @@ export class Syncer {
       ? await this.symbolProvider.find(document, uid)
       : await SyncBlock.tryFromAnyLine(document, line);
     // explicitly set -> block status -> active line type
-    fromPartType =
-      fromPartType ||
-      block?.fromPartType ||
-      block?.linePartType(line) ||
-      undefined;
+    from =
+      from || block?.fromPartType || block?.linePartType(line) || undefined;
 
-    if (!block || !fromPartType) {
+    if (!block || !from) {
       return;
     }
 
@@ -99,15 +110,15 @@ export class Syncer {
 
     await editor.changeStatus(uid, "syncing");
     return await this._scheduler.schedule(
-      uid,
+      { uid, from },
       async (token) => {
-        const text = this.client.translate(block, fromPartType, {
+        const text = this.client.translate(block, from, {
           token,
           instruction,
         });
         // const text = randomTextGenerator(10, 300);
         try {
-          await editor.sync(uid, fromPartType, text, token);
+          await editor.sync(uid, from, text, token);
 
           await editor.changeStatus(uid, "synced");
           const syncedBlock = await this.symbolProvider.find(document, uid);

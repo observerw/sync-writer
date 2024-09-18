@@ -59,7 +59,7 @@ export interface TranslateTextPromptProps extends BasePromptElementProps {
   sourceLang: string;
   targetLang: string;
   content: string;
-  partType: SyncBlockPartType;
+  from: SyncBlockPartType;
   prev?: {
     source: string;
     target: string;
@@ -71,8 +71,14 @@ export class TranslateTextPrompt extends PromptElement<TranslateTextPromptProps>
     state: void,
     sizing: PromptSizing
   ): Promise<PromptPiece | undefined> {
-    const { instruction, sourceLang, targetLang, content, partType, prev } =
-      this.props;
+    const {
+      instruction,
+      sourceLang,
+      targetLang,
+      content,
+      from: partType,
+      prev,
+    } = this.props;
 
     const [prevTitle, ...prevContents] = prev
       ? [

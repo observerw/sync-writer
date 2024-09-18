@@ -64,9 +64,9 @@ export class SyncBlockCache {
     );
   }
 
-  getPart(uid: string, part: SyncBlockPartType): string | null {
+  getPart(uid: string, type: SyncBlockPartType): string | null {
     const data = this.get(uid);
-    return data ? data[part] : null;
+    return data ? data[type] : null;
   }
 
   remove(uid: string) {

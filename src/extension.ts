@@ -83,7 +83,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (block.part(linePartType).complete && GlobalConfig.autoSync) {
         await syncer.sync(textEditor, {
           uid,
-          fromPartType: block.fromPartType!,
+          from: block.fromPartType!,
         });
       }
     }
@@ -112,12 +112,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const line = textEditor.selection.active.line;
     const block = await SyncBlock.tryFromAnyLine(document, line);
-    const fromPartType = block?.fromPartType;
-    if (!block || !fromPartType) {
+    const from = block?.fromPartType;
+    if (!block || !from) {
       return;
     }
 
-    await syncer.sync(textEditor, { uid: block.uid, fromPartType });
+    await syncer.sync(textEditor, { uid: block.uid, from });
   });
   context.subscriptions.push(texWatcher);
 
@@ -193,7 +193,7 @@ export async function activate(context: vscode.ExtensionContext) {
       async (
         textEditor,
         _edit,
-        { uid, fromPartType, instruction }: SyncOptions,
+        { uid, from, instruction }: SyncOptions,
         ignoreInstruction: boolean = false
       ) => {
         if (!ignoreInstruction && !instruction) {
@@ -207,7 +207,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         await syncer.sync(textEditor, {
           uid,
-          fromPartType,
+          from,
           instruction,
         });
       }
