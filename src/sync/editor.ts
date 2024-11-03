@@ -172,8 +172,6 @@ export class SyncEditor {
     await this.changeContent(uid, to, "");
 
     for await (const chunk of text) {
-      console.log(chunk);
-
       if (token?.aborted) {
         throw new Error("cancelled");
       }

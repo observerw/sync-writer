@@ -1,5 +1,5 @@
 import Handlebars from "handlebars";
-import TranslateSystemMessage from "inline:./templates/system.handlebars";
+import TranslateSystemTemplate from "inline:./templates/system.handlebars";
 import TranslateTemplate from "inline:./templates/translate.handlebars";
 import OpenAI from "openai";
 import type { References } from "../references";
@@ -22,7 +22,10 @@ export const translatePromptTemplate = (props: TranslateProps): Message[] => {
   return [
     {
       role: "system",
-      content: TranslateSystemMessage,
+      content: Handlebars.compile(TranslateSystemTemplate)({
+        sourceLang: props.sourceLang,
+        targetLang: props.targetLang,
+      }),
     },
     {
       role: "user",
