@@ -24,6 +24,16 @@
     }
   },
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sync-writer",
+          "title": "Sync Writer",
+          "icon": "icon/s.svg"
+        }
+      ]
+    },
+    "views": {},
     "keybindings": [
       {
         "command": "sync-writer.sync",
