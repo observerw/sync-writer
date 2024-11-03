@@ -17,7 +17,6 @@ import { Syncer, type SyncOptions } from "./sync/sync";
 
 export async function activate(context: vscode.ExtensionContext) {
   const config = new Config(context);
-  // const client = new OpenAIClient(context);
   const client = await OpenAIClient.init(context);
 
   const symbolProvider = new SyncBlockSymbolProvider();
@@ -192,7 +191,7 @@ export async function activate(context: vscode.ExtensionContext) {
       }
 
       const exists = await config.exists(doc);
-      if (!exists) {
+      if (exists) {
         return;
       }
 
