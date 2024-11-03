@@ -1,10 +1,12 @@
 # Sync-Writer
 
+![star](https://img.shields.io/github/stars/observerw/sync-writer) ![version](https://vsmarketplacebadges.dev/version-short/observerw.sync-writer.svg) ![download](https://vsmarketplacebadges.dev/downloads/observerw.sync-writer.svg) 
+
 ![example](assets/example.png)
 
 专为非英语母语者设计的 $\LaTeX$ 写作工具，**只需编写非英语的文本注释，即可同步生成符合英语学术写作规范的 $\LaTeX$ 文本**。
 
-- 自动翻译为符合英语学术写作规范的 $\LaTeX$ 文本；
+- 使用LLM，将非英文注释翻译为符合英语学术写作规范的 $\LaTeX$ 文本；
 - 注释和正文之间保持同步，无论编辑哪一方，另一方都会自动更新；
 - 增量翻译，内容更新时翻译文本将参考上一次的翻译结果，保证用词、风格的一致性；
 - 支持术语定义，确保同一篇文档中术语的一致性；
@@ -14,12 +16,13 @@
 
 本插件使用**符合 OpenAI API 接口形式的 LLM API 进行翻译**，因此需要你自行准备 API 密钥并配置相对应的 base URL。当没有正确设置 API 密钥时，插件将无法正常工作。
 
-你可以在 VSCode 设置中搜索 `Sync-writer: Base-url`来设置 base URL。出于安全原因，你无法在设置页面设置 API key，但你可以随时在命令面板中使用 `Sync Writer: Set OpenAI API Key` 命令来设置 API 密钥。
+你可以在 VSCode 设置中搜索 `sync-writer: Base-url`来设置 base URL。出于安全原因，你无法在设置页面设置 API key，但你可以随时在命令面板中使用 `Sync Writer: Set OpenAI API Key` 命令来设置 API 密钥。
 
 除了使用 OpenAI API 外，你也可以在如下平台上申请 API 密钥并设置相应的 base URL：
 
 - Deepseek：https://platform.deepseek.com/ ，base URL 为 `https://api.deepseek.com/`
 - GLM：https://open.bigmodel.cn/ ，base URL 为 `https://open.bigmodel.cn/api/paas/v4`
+- (其他符合OpenAI API接口形式的API)
 
 # 同步块
 
