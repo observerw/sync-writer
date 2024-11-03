@@ -1,5 +1,32 @@
+import { isURL } from "class-validator";
+import OpenAI from "openai";
 import * as vscode from "vscode";
+import { GlobalConfig } from "../config/global";
 import { API_KEY } from "./const";
+import BaseURLs from "./data/base-url.json";
+
+export const setBaseUrl = async (context: vscode.ExtensionContext) => {
+  const baseURLKey = await vscode.window.showQuickPick([
+    ...Object.keys(BaseURLs),
+    "Other",
+  ]);
+  if (!baseURLKey) {
+    return;
+  }
+
+  if (baseURLKey === "Other") {
+    const customURL = await vscode.window.showInputBox({
+      prompt: "Enter the base URL",
+    });
+    if (!customURL || !isURL(customURL)) {
+      return;
+    }
+
+    GlobalConfig.baseUrl = customURL;
+  } else {
+    GlobalConfig.baseUrl = BaseURLs[baseURLKey as keyof typeof BaseURLs];
+  }
+};
 
 export const setApiKey = async (context: vscode.ExtensionContext) => {
   const apiKey = await vscode.window.showInputBox({
@@ -27,4 +54,22 @@ export const ensureApiKey = async (
   );
 
   return await setApiKey(context);
+};
+
+export const setModel = async (ctx: vscode.ExtensionContext) => {
+  const apiKey = await ctx.secrets.get(API_KEY);
+  const client = new OpenAI({
+    apiKey,
+    baseURL: GlobalConfig.baseUrl,
+  });
+
+  const models = await client.models.list();
+  const selectedModel = await vscode.window.showQuickPick(
+    models.data.map(({ id }) => id)
+  );
+  if (!selectedModel) {
+    return;
+  }
+
+  GlobalConfig.baseModel = selectedModel;
 };
