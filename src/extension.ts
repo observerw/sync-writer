@@ -17,7 +17,8 @@ import { Syncer, type SyncOptions } from "./sync/sync";
 
 export async function activate(context: vscode.ExtensionContext) {
   const config = new Config(context);
-  const client = new OpenAIClient(context);
+  // const client = new OpenAIClient(context);
+  const client = await OpenAIClient.init(context);
 
   const symbolProvider = new SyncBlockSymbolProvider();
   const codeLensProvider = new SyncBlockCodeLensProvider(symbolProvider);
@@ -85,6 +86,50 @@ export async function activate(context: vscode.ExtensionContext) {
           uid,
           from: block.fromPartType!,
         });
+      }
+    }
+  );
+  vscode.workspace.onDidChangeTextDocument(
+    async ({ document, contentChanges, reason }) => {
+      if (contentChanges.length === 0) {
+        return;
+      }
+      const [change] = contentChanges;
+
+      const activeEditor = vscode.window.activeTextEditor;
+      if (
+        !activeEditor ||
+        document.uri.toString() !== activeEditor.document.uri.toString()
+      ) {
+        return;
+      }
+
+      const editor = new SyncEditor(activeEditor, symbolProvider);
+
+      const line = change.range.start.line;
+      const block = await SyncBlock.tryFromAnyLine(document, line);
+      if (!block) {
+        return;
+      }
+
+      const uid = block.uid;
+      const editPartType = block.linePartType(line)!;
+
+      if (block.status === "syncing") {
+        const info = syncer.query(uid);
+        if (!info || info.from !== editPartType) {
+          return;
+        }
+
+        syncer.cancel(uid);
+      } else {
+        // const newStatus = (
+        //   {
+        //     source: "s2t",
+        //     target: "t2s",
+        //   } satisfies Record<SyncBlockPartType, SyncStatus>
+        // )[editPartType];
+        // await editor.changeStatus(uid, newStatus);
       }
     }
   );
@@ -219,16 +264,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerTextEditorCommand(
       "sync-writer.abort",
       async (textEditor, _edit, uid: string) => {
-        const document = textEditor.document;
         syncer.cancel(uid);
-
-        // rollback to the cached state
-        const cache = new SyncBlockCache(context, document.uri);
-        const editor = new SyncEditor(textEditor, symbolProvider);
-        const cached = cache.get(uid);
-        if (cached) {
-          await editor.rollback(cached);
-        }
       }
     )
   );

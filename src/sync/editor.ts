@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { utils } from "../utils";
 import type { AbortToken } from "../utils/abort";
 import { SyncBlock, SyncBlockPartType } from "./block";
-import { SyncBlockCacheData } from "./cache";
 import { SyncComment, SyncCommentPrefix, type SyncStatus } from "./parse";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
@@ -148,15 +147,6 @@ export class SyncEditor {
     });
   }
 
-  async rollback(
-    { uid, source, target }: SyncBlockCacheData,
-    status?: SyncStatus
-  ) {
-    await this.changeStatus(uid, status ?? "synced");
-    await this.changeContent(uid, "source", source);
-    await this.changeContent(uid, "target", target);
-  }
-
   async create(anyLine: number) {
     const document = this._textEditor.document;
     // already in a block, do nothing
@@ -177,22 +167,18 @@ export class SyncEditor {
     text: AsyncIterable<string>,
     token?: AbortToken
   ) {
-    const block = await this._find(uid, token);
-    const toPartType = from === "source" ? "target" : "source";
+    const to = from === "source" ? "target" : "source";
 
-    try {
-      await this.changeContent(uid, toPartType, "");
+    await this.changeContent(uid, to, "");
 
-      for await (const chunk of text) {
-        if (token?.aborted) {
-          throw new Error("cancelled");
-        }
+    for await (const chunk of text) {
+      console.log(chunk);
 
-        await this.concatContent(uid, toPartType, chunk);
+      if (token?.aborted) {
+        throw new Error("cancelled");
       }
-    } catch (e) {
-      await this.rollback(SyncBlockCacheData.from(block), block.status);
-      throw e;
+
+      await this.concatContent(uid, to, chunk);
     }
   }
 

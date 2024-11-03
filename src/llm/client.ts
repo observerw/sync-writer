@@ -1,5 +1,3 @@
-import { renderPrompt } from "@vscode/prompt-tsx";
-import { memoizeDecorator } from "memoize";
 import { OpenAI } from "openai";
 import * as vscode from "vscode";
 import { Config } from "../config";
@@ -10,38 +8,57 @@ import { SyncBlockCache } from "../sync/cache";
 import type { AbortToken } from "../utils/abort";
 import { LLMCache } from "./cache";
 import { API_KEY } from "./const";
-import { TranslatePrompt, TranslatePromptProps } from "./prompt";
-import { TiktokenTokenzier } from "./tokenizer";
-import { transformMessage } from "./utils";
+import {
+  translatePromptTemplate,
+  type TranslateProps,
+} from "./prompt-template";
 
-export type RequestOptions = {
-  token?: AbortToken;
-  modelOptions?: any;
-};
-
-export type TranslateOptions = {
+export interface TranslateOptions {
   instruction?: string;
   token?: AbortToken;
-  modelOptions?: any;
-};
+}
 
-export abstract class LLMClient {
-  protected _translateCache: LLMCache<TranslatePromptProps> = new LLMCache();
+export class OpenAIClient {
+  protected _translateCache: LLMCache<TranslateProps> = new LLMCache();
   protected _config: Config;
 
-  constructor(protected _context: vscode.ExtensionContext) {
+  private constructor(
+    protected _context: vscode.ExtensionContext,
+    protected _client: OpenAI
+  ) {
     this._config = new Config(_context);
   }
 
-  /**
-   * Send messages to the language model and return the response as an async iterable.
-   */
-  protected abstract _request(
-    messages: vscode.LanguageModelChatMessage[],
-    options?: RequestOptions
-  ): AsyncIterable<string>;
+  static async init(ctx: vscode.ExtensionContext): Promise<OpenAIClient> {
+    const apiKey = await ctx.secrets.get(API_KEY);
+    if (!apiKey) {
+      throw new Error("API key not found");
+    }
+    const client = new OpenAI({
+      apiKey,
+      baseURL: GlobalConfig.baseUrl,
+    });
 
-  abstract validate(): Promise<void> | void;
+    return new OpenAIClient(ctx, client);
+  }
+
+  private get _model() {
+    return GlobalConfig.baseModel;
+  }
+
+  async validate() {
+    const models = await this._client.models.list();
+    const found = models.data.some(({ id }) => id === this._model);
+    if (found) {
+      return;
+    }
+
+    throw new Error(
+      `Model ${this._model} not found, available models: ${models.data
+        .map(({ id }) => id)
+        .join(", ")}`
+    );
+  }
 
   async *translate(
     block: SyncBlock,
@@ -50,103 +67,38 @@ export abstract class LLMClient {
   ): AsyncIterable<string> {
     const configData = await this._config.load(block.document);
     const references = configData.references;
-    const props: TranslatePromptProps = {
+    const props: TranslateProps = {
       references,
-      text: {
-        from: from,
-        sourceLang: GlobalConfig.sourceLangName,
-        targetLang: GlobalConfig.targetLangName,
-        content: block.part(from).text.trim(),
-        instruction: options?.instruction?.trim(),
-      },
+      source: from === "source",
+      sourceLang: GlobalConfig.sourceLangName,
+      targetLang: GlobalConfig.targetLangName,
+      content: block.part(from).text.trim(),
+      instruction: options?.instruction?.trim(),
     };
+
     const blockCache = new SyncBlockCache(this._context, block.document.uri);
     const cached = blockCache.get(block.uid);
     if (cached) {
-      props.text.prev = {
+      props.prev = {
         source: cached.source.trim(),
         target: cached.target.trim(),
       };
     }
-    const cachedResp = this._translateCache.get(props);
 
+    const cachedResp = this._translateCache.get(props);
     if (cachedResp) {
       yield cachedResp;
       return;
     }
 
-    const { messages } = await renderPrompt(
-      TranslatePrompt,
-      props,
-      {
-        modelMaxPromptTokens: 4096,
-      },
-      new TiktokenTokenzier()
-    );
-
-    for await (const chunk of this._request(messages, options)) {
-      this._translateCache.extend(props, chunk);
-      yield chunk;
-    }
-  }
-
-  preference(): Promise<ReferenceItem> {
-    throw new Error("Not implemented");
-  }
-}
-
-export class OpenAIClient extends LLMClient {
-  constructor(_context: vscode.ExtensionContext) {
-    super(_context);
-  }
-
-  @memoizeDecorator()
-  private async _client(): Promise<OpenAI> {
-    const apiKey = await this._context.secrets.get(API_KEY);
-    if (!apiKey) {
-      throw new Error("API key not found");
-    }
-
-    return new OpenAI({
-      apiKey,
-      baseURL: GlobalConfig.baseUrl,
-    });
-  }
-
-  private get _model() {
-    return GlobalConfig.baseModel;
-  }
-
-  async validate() {
-    const client = await this._client();
-    const models = await client.models.list();
-
-    const found = models.data.some((m) => m.id === this._model);
-    if (!found) {
-      throw new Error(
-        `Model ${this._model} not found, available models: ${models.data
-          .map((m) => m.id)
-          .join(", ")}`
-      );
-    }
-  }
-
-  protected async *_request(
-    messages: vscode.LanguageModelChatMessage[],
-    options?: RequestOptions
-  ): AsyncIterable<string> {
-    const client = await this._client();
-    const transformedMessages = messages.map((m) => transformMessage(m));
-    const resp = await client.chat.completions.create({
-      ...(options?.modelOptions as OpenAI.Chat.ChatCompletionCreateParamsStreaming),
+    const messages = translatePromptTemplate(props);
+    for await (const chunk of await this._client.chat.completions.create({
       model: this._model,
-      messages: transformedMessages,
+      messages,
       stream: true,
-    });
-
-    for await (const chunk of resp) {
+    })) {
       if (options?.token?.aborted) {
-        throw new Error("aborted");
+        return;
       }
 
       const content = chunk.choices[0].delta.content;
@@ -154,60 +106,12 @@ export class OpenAIClient extends LLMClient {
         continue;
       }
 
+      this._translateCache.extend(props, content);
       yield content;
     }
   }
 
-  translate(
-    block: SyncBlock,
-    from: SyncBlockPartType,
-    options?: Omit<TranslateOptions, "modelOptions">
-  ): AsyncIterable<string> {
-    return super.translate(block, from, {
-      ...options,
-      modelOptions: {
-        temperature: 0,
-        stop: ["\n"],
-      } satisfies Partial<OpenAI.Chat.ChatCompletionCreateParamsStreaming>,
-    });
-  }
-}
-
-export class CopilotClient extends LLMClient {
-  constructor(_context: vscode.ExtensionContext) {
-    super(_context);
-  }
-
-  async validate() {
-    await this._model();
-  }
-
-  private async _model() {
-    const models = await vscode.lm.selectChatModels({
-      vendor: "copilot",
-      family: GlobalConfig.baseModel,
-    });
-
-    if (!models) {
-      throw new Error("No model available");
-    }
-
-    const [model] = models;
-    return model;
-  }
-
-  protected async *_request(
-    messages: vscode.LanguageModelChatMessage[],
-    options?: RequestOptions
-  ): AsyncIterable<string> {
-    const model = await this._model();
-
-    const { text } = await model.sendRequest(
-      messages,
-      options?.modelOptions,
-      options?.token?.token
-    );
-
-    return text;
+  preference(): Promise<ReferenceItem> {
+    throw new Error("Not implemented");
   }
 }

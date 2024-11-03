@@ -1,0 +1,51 @@
+{{#if references}}
+The following references are provided for your reference:
+
+{{#if references.glossary}}
+Glossary: all terms and definitions. You must strictly follow the terms and definitions in the glossary when translating.
+
+{{#each references.glossary}}
+- {{this.source}} -> {{this.target}}
+{{/each}}
+{{/if}}
+
+{{#if references.preferences}}
+Preferences: user preferences for translation. You should consider the user's preferences when translating.
+
+{{#each references.preferences}}
+- {{this.source}} -> {{this.target}}
+{{/each}}
+{{/if}}
+{{/if}}
+
+{{#if prev}}
+# Previous translation
+
+Previous source text (in {{sourceLang}}): {{prev.source}}
+
+Previous translated text (in {{targetLang}}): {{prev.target}}
+{{else}}
+# Example
+
+Current source text (in {{sourceLang}}): 图~\\ref{fig:rq1}展示了实验一的结果。
+
+Current translated text (in {{targetLang}}): Figure~\\ref{fig:rq1} has demonstrate the result of experiment one.
+{{/if}}
+
+{{#if instruction}}
+User instruction: {{instruction}}
+{{/if}}
+
+# Current translation
+
+{{#if source}}
+Current source text (in {{sourceLang}}): {{content}}
+
+Please response with Current translated text (in {{targetLang}}), without any additional format (like starting with 'Current translated text') or content.
+{{else}}
+Current translated text (in {{targetLang}}): {{content}}
+
+Please response with Current source text (in {{sourceLang}}), without any additional format (like starting with 'Current source text') or content.
+{{/if}}
+
+Response:

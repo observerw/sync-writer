@@ -1,14 +1,23 @@
 import * as vscode from "vscode";
-import type { LLMClient } from "../llm/client";
+import type { OpenAIClient } from "../llm/client";
 import { AbortSource, AbortToken } from "../utils/abort";
 import { SyncBlock, type SyncBlockPartType } from "./block";
 import { SyncBlockCache } from "./cache";
 import { SyncEditor } from "./editor";
+import type { SyncStatus } from "./parse";
 import type { SyncBlockSymbolProvider } from "./symbol";
 
-export interface SyncTaskInfo {
-  uid: string;
-  from: SyncBlockPartType;
+export class SyncTaskInfo {
+  constructor(readonly uid: string, readonly from: SyncBlockPartType) {}
+
+  get status(): SyncStatus {
+    return (
+      {
+        source: "s2t",
+        target: "t2s",
+      } satisfies Record<SyncBlockPartType, SyncStatus>
+    )[this.from];
+  }
 }
 
 interface SyncTask {
@@ -20,18 +29,18 @@ class TaskScheduler {
   /**
    * Sync block id to its abort source
    */
-  sources: Map<string, SyncTask> = new Map();
+  tasks: Map<string, SyncTask> = new Map();
 
   async schedule(
     info: SyncTaskInfo,
     taskFunc: (token: AbortToken) => Promise<void>,
     delayMs: number = 0
   ): Promise<AbortSource> {
-    const prevTask = this.sources.get(info.uid);
+    const prevTask = this.tasks.get(info.uid);
     if (prevTask) {
       // always cancel the previous edit if two edits are scheduled on the same block
       prevTask.source.cancel();
-      this.sources.delete(info.uid);
+      this.tasks.delete(info.uid);
     }
 
     const source = new AbortSource();
@@ -39,29 +48,29 @@ class TaskScheduler {
 
     const timeout = setTimeout(async () => {
       await taskFunc(source.token);
-      this.sources.delete(info.uid);
+      this.tasks.delete(info.uid);
     }, delayMs);
     token.onAborted(() => {
       clearTimeout(timeout);
-      this.sources.delete(info.uid);
+      this.tasks.delete(info.uid);
     });
 
-    this.sources.set(info.uid, { info, source });
+    this.tasks.set(info.uid, { info, source });
 
     return source;
   }
 
   cancel(uid: string): boolean {
-    const task = this.sources.get(uid);
+    const task = this.tasks.get(uid);
     task?.source.cancel();
-    return this.sources.delete(uid);
+    return this.tasks.delete(uid);
   }
 
   cancelAll() {
-    for (const task of this.sources.values()) {
+    for (const task of this.tasks.values()) {
       task.source.cancel();
     }
-    this.sources.clear();
+    this.tasks.clear();
   }
 }
 
@@ -77,7 +86,7 @@ export class Syncer {
   constructor(
     private _context: vscode.ExtensionContext,
     readonly symbolProvider: SyncBlockSymbolProvider,
-    readonly client: LLMClient
+    readonly client: OpenAIClient
   ) {}
 
   cancel(uid: string) {
@@ -85,21 +94,24 @@ export class Syncer {
   }
 
   query(uid: string) {
-    return this._scheduler.sources.get(uid)?.info;
+    return this._scheduler.tasks.get(uid)?.info;
   }
 
   async sync(
     textEditor: vscode.TextEditor,
     { uid, from, instruction }: SyncOptions
   ) {
-    const document = textEditor.document;
+    const doc = textEditor.document;
     const line = textEditor.selection.active.line;
+
     const block = uid
-      ? await this.symbolProvider.find(document, uid)
-      : await SyncBlock.tryFromAnyLine(document, line);
-    // explicitly set -> block status -> active line type
+      ? await this.symbolProvider.find(doc, uid) // explicit
+      : await SyncBlock.tryFromAnyLine(doc, line); // from active line
     from =
-      from || block?.fromPartType || block?.linePartType(line) || undefined;
+      from || // explicit
+      block?.fromPartType || // from active block
+      block?.linePartType(line) || // from active line
+      undefined;
 
     if (!block || !from) {
       return;
@@ -107,10 +119,12 @@ export class Syncer {
 
     uid = block.uid;
     const editor = new SyncEditor(textEditor, this.symbolProvider);
+    const cache = new SyncBlockCache(this._context, doc.uri);
+    const info = new SyncTaskInfo(uid, from);
 
     await editor.changeStatus(uid, "syncing");
     return await this._scheduler.schedule(
-      { uid, from },
+      info,
       async (token) => {
         const text = this.client.translate(block, from, {
           token,
@@ -119,16 +133,21 @@ export class Syncer {
         // const text = randomTextGenerator(10, 300);
         try {
           await editor.sync(uid, from, text, token);
-
           await editor.changeStatus(uid, "synced");
-          const syncedBlock = await this.symbolProvider.find(document, uid);
-          const cache = new SyncBlockCache(this._context, document.uri);
+
+          const syncedBlock = await this.symbolProvider.find(doc, uid);
           await cache.save(syncedBlock!);
         } catch (e) {
+          const cached = cache.get(uid) || { source: "", target: "" };
+          const to = info.from === "source" ? "target" : "source";
+          await editor.changeContent(uid, to, cached[to]);
+          await editor.changeStatus(uid, info.status);
+
           const errMsg = (e as Error).message;
           await vscode.window.showWarningMessage(
             `Sync failed: ${errMsg}, rollback to previous state`
           );
+
           throw e;
         }
       },

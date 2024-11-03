@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 
 export const transformMessage = (
   message: vscode.LanguageModelChatMessage
-): OpenAI.Chat.ChatCompletionMessageParam => {
+): OpenAI.Chat.Completions.ChatCompletionMessageParam => {
   const { User, Assistant } = vscode.LanguageModelChatMessageRole;
   const role = (
     {
@@ -16,6 +16,11 @@ export const transformMessage = (
   )[message.role];
   return {
     role: role,
-    content: message.content,
+    content: [
+      {
+        type: "text",
+        text: message.content,
+      },
+    ],
   };
 };
